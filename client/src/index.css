@@ -1,0 +1,164 @@
+/* CONTENEDOR GENERAL */
+.container {
+  width: 95%;
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* TITULO */
+.titulo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.titulo h1 {
+  color: #1e3a8a;
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.titulo p {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* FORMULARIO */
+.formulario {
+  margin-bottom: 35px;
+}
+
+/* GRID */
+.grid-formulario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* CAMPOS */
+.campo {
+  display: flex;
+  flex-direction: column;
+}
+
+.campo label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* INPUTS */
+.input {
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  transition: 0.3s;
+  font-size: 15px;
+  background: #f8fafc;
+}
+
+.input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  background: white;
+}
+
+/* BOTON REGISTRAR */
+.btn-registrar {
+  margin-top: 25px;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-registrar:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+}
+
+/* TABLA */
+.tabla-container {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.tabla thead {
+  background: #1e3a8a;
+  color: white;
+}
+
+.tabla th,
+.tabla td {
+  padding: 14px;
+  text-align: center;
+}
+
+.tabla tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: 0.2s;
+}
+
+.tabla tbody tr:hover {
+  background: #f1f5f9;
+}
+
+/* BOTONES */
+.btn-editar,
+.btn-eliminar {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  margin: 0 4px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-editar {
+  background: #f59e0b;
+}
+
+.btn-editar:hover {
+  background: #d97706;
+}
+
+.btn-eliminar {
+  background: #ef4444;
+}
+
+.btn-eliminar:hover {
+  background: #dc2626;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .titulo h1 {
+    font-size: 1.7rem;
+  }
+
+  .tabla th,
+  .tabla td {
+    font-size: 13px;
+    padding: 10px;
+  }
+}
