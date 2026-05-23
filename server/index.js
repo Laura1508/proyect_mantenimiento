@@ -1,19 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-const { parse } = require('dotenv');
 
 const app = express();
-
 
 app.use(cors());
 
 app.use(express.json());
 
-app.get('/docentes', (req, res) => {
+app.get('/docentes', async (req, res) => {
     const {
-        cursor_id = '0', limite = '10', 
-        nombre, correo, area_academica, dedicacion, titulo, anios_experiencia} = req.query;
+        cursor_id = '0', limite = '10',
+        nombre, correo, area_academica, dedicacion, titulo, anios_experiencia
+    } = req.query;
 
     const cursorIdNum = parseInt(cursor_id, 10);
     const limiteNum = parseInt(limite, 10);
@@ -33,45 +32,73 @@ app.get('/docentes', (req, res) => {
         }
     }
 
-    let sqlQuery = 'SELECT * FROM docentes ' +
-            'WHERE id > ? ';
-    const queryParams = [cursorIdNum];
+    const filters = ['id > ?'];
+    const filterParams = [];
+    const totalCountFilters = [];
 
     if (nombre) {
-        sqlQuery += 'AND nombre LIKE ? ';
-        queryParams.push(`%${nombre}%`);
+        filters.push('nombre LIKE ?');
+        filterParams.push(`%${nombre}%`);
+        totalCountFilters.push('nombre LIKE ?');
     }
     if (correo) {
-        sqlQuery += 'AND correo LIKE ? ';
-        queryParams.push(`%${correo}%`);
+        filters.push('correo LIKE ?');
+        filterParams.push(`%${correo}%`);
+        totalCountFilters.push('correo LIKE ?');
     }
     if (area_academica) {
-        sqlQuery += 'AND area_academica LIKE ? ';
-        queryParams.push(`%${area_academica}%`);
+        filters.push('area_academica LIKE ?');
+        filterParams.push(`%${area_academica}%`);
+        totalCountFilters.push('area_academica LIKE ?');
     }
     if (dedicacion) {
-        sqlQuery += 'AND dedicacion LIKE ? ';
-        queryParams.push(`%${dedicacion}%`);
+        filters.push('dedicacion LIKE ?');
+        filterParams.push(`%${dedicacion}%`);
+        totalCountFilters.push('dedicacion LIKE ?');
     }
     if (titulo) {
-        sqlQuery += 'AND titulo LIKE ? ';
-        queryParams.push(`%${titulo}%`);
+        filters.push('titulo LIKE ?');
+        filterParams.push(`%${titulo}%`);
+        totalCountFilters.push('titulo LIKE ?');
     }
     if (anios_experiencia) {
-        sqlQuery += 'AND anios_experiencia >= ? ';
-        queryParams.push(aniosFilterNum);
+        filters.push('anios_experiencia >= ?');
+        filterParams.push(aniosFilterNum);
+        totalCountFilters.push('anios_experiencia >= ?');
     }
 
-    sqlQuery += 'ORDER BY id ASC ' +
-            'LIMIT ?';
+    const whereClause = `WHERE ${filters.join(' AND ')}`;
+    const countWhereClause = totalCountFilters.length > 0 ? `WHERE ${totalCountFilters.join(' AND ')}` : '';
 
-    db.query(sqlQuery, [...queryParams, limiteNum], (err, results) =>{
-        if (err) {
-            console.error('Error al obtener los docentes:', err);
-            return res.status(500).json({error: 'Error al obtener los docentes'});
+    const sqlQuery = `SELECT * FROM docentes ${whereClause} ORDER BY id ASC LIMIT ?`;
+    const countQuery = `SELECT COUNT(*) AS total FROM docentes ${countWhereClause}`;
+    const beforeCursorQuery = `SELECT COUNT(*) AS beforeCount FROM docentes ${countWhereClause}${countWhereClause ? ' AND' : 'WHERE'} id <= ?`;
+
+    try {
+        const countRows = await dbQuery(countQuery, [...filterParams]);
+        const totalDocentes = countRows?.[0]?.total || 0;
+        const totalPaginas = totalDocentes === 0 ? 0 : Math.ceil(totalDocentes / limiteNum);
+
+        let paginaActual = 1;
+        if (cursorIdNum > 0 && totalDocentes > 0) {
+            const beforeParams = [cursorIdNum, ...filterParams];
+            const beforeRows = await dbQuery(beforeCursorQuery, beforeParams);
+            const beforeCount = beforeRows?.[0]?.beforeCount || 0;
+            paginaActual = Math.floor(beforeCount / limiteNum) + 1;
         }
-        res.json(results);
-    });
+
+        const results = await dbQuery(sqlQuery, [cursorIdNum, ...filterParams, limiteNum]);
+
+        return res.json({
+            totalDocentes,
+            totalPaginas,
+            paginaActual,
+            docentes: results,
+        });
+    } catch (err) {
+        console.error('Error al obtener los docentes:', err);
+        return res.status(500).json({error: 'Error al obtener los docentes'});
+    }
 });
 
 app.get('/docentes/:id', (req, res) => {
