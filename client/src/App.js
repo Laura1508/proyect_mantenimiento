@@ -17,6 +17,9 @@ function App() {
   const [mensajeExito, setMensajeExito] = useState("");
 
   const [registros, setRegistros] = useState([]);
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroCorreo, setFiltroCorreo] = useState("");
+  const [filtroArea, setFiltroArea] = useState("");
   const [editIndex, setEditIndex] = useState(null);
 
   // HU-03: lógica de validaciones
@@ -86,7 +89,21 @@ function App() {
     } catch (error) {
       console.error(error);
     }
-  };
+
+    const response = await fetch(
+      `http://localhost:3001/docentes?${params.toString()}`
+    );
+
+    const data = await response.json();
+
+    setRegistros(data.docentes);
+
+  } catch (error) {
+    console.error(error);
+
+    alert("Error al cargar los docentes");
+  }
+};
 
   const limpiarFormulario = () => {
     setNombre(""); setCorreo(""); setTelefono(""); setTitulo("");
