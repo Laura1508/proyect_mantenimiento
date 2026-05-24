@@ -128,12 +128,12 @@ function App() {
 
           alert("Docente actualizado correctamente");
 
-        } else {
+       } else {
           const err = await response.json().catch(() => ({}));
 
           console.error(err);
 
-          alert("Error al actualizar el docente");
+          alert(err.error || "Error al actualizar el docente");
         }
 
       } catch (error) {
@@ -168,7 +168,9 @@ function App() {
         } else {
           console.error(data);
 
-          alert("Error al registrar el docente");
+          const message = data?.error || 'Error al registrar docente';
+
+          alert(message);
         }
 
       } catch (error) {

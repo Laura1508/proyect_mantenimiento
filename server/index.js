@@ -146,22 +146,37 @@ app.post('/docentes',(req, res)=>{
     }
 
     const sql = 'INSERT INTO docentes (nombre, correo, telefono, titulo, area_academica, dedicacion, anios_experiencia) VALUES(?,?,?,?,?,?,?)'; 
+    
+    const normalizedEmail = correo.trim().toLowerCase();
 
-    db.query(sql, [nombre.trim(), correo.trim(),telefono.trim(),titulo.trim(), area_academica.trim(),dedicacion.trim(),anios], (err, result) => {
-        if(err){
-            return res.status(500).json({error: 'Error al guardar el docente'});
+    // Verificar duplicado de correo
+    const checkSql = 'SELECT id FROM docentes WHERE LOWER(TRIM(correo)) = ? LIMIT 1';
+    db.query(checkSql, [normalizedEmail], (checkErr, checkResults) => {
+        if (checkErr) {
+            return res.status(500).json({error: 'Error al validar el correo'});
+        }
+        if (checkResults.length) {
+            return res.status(409).json({
+                error: 'El correo ya está registrado'
+            });
         }
 
-        res.json({
-            id: result.insertId,
-            nombre: nombre.trim(),
-            correo: correo.trim(),
-            telefono: telefono.trim(),
-            titulo: titulo.trim(),
-            area_academica: area_academica.trim(),
-            dedicacion: dedicacion.trim(),
-            anios_experiencia: anios,
+        db.query(sql, [nombre.trim(), correo.trim(),telefono.trim(),titulo.trim(), area_academica.trim(),dedicacion.trim(),anios], (err, result) => {
+            if(err){
+                return res.status(500).json({error: 'Error al guardar el docente'});
+            }
 
+            res.json({
+                id: result.insertId,
+                nombre: nombre.trim(),
+                correo: correo.trim(),
+                telefono: telefono.trim(),
+                titulo: titulo.trim(),
+                area_academica: area_academica.trim(),
+                dedicacion: dedicacion.trim(),
+                anios_experiencia: anios,
+
+            });
         });
     });
 });
@@ -178,26 +193,40 @@ app.put('/docentes/:id', (req, res) => {
         });
     }
 
-    const sql = 'UPDATE docentes SET nombre=?, correo=?, telefono=?, titulo=?, area_academica=?, dedicacion=?, anios_experiencia=? WHERE id=?';
+        // Verificar duplicado de correo
+        const normalizedEmail = correo.trim().toLowerCase();
+        const checkSql = 'SELECT id FROM docentes WHERE LOWER(TRIM(correo)) = ? AND id != ? LIMIT 1';
+        db.query(checkSql, [normalizedEmail, id], (checkErr, checkResults) => {
+                if (checkErr) {
+                        return res.status(500).json({error: 'Error al validar el correo'});
+                }
+                if (checkResults.length) {
+                        return res.status(409).json({
+                                error: 'El correo ya está registrado por otro docente'
+                        });
+                }
 
-    db.query(
-    sql,
-    [
-      nombre.trim(),
-      correo.trim(),
-      telefono.trim(),
-      titulo.trim(),
-      area_academica.trim(),
-      dedicacion.trim(),
-      anios,
-      id
-    ],
-    (err) => {
-        if (err){
-          return res.status(500).json({error: 'Error al actualizar el docente'});
-        }
-        return res.json({message: 'Docente Actualizado correctamente'});
-    });
+                const sql = 'UPDATE docentes SET nombre=?, correo=?, telefono=?, titulo=?, area_academica=?, dedicacion=?, anios_experiencia=? WHERE id=?';
+
+                db.query(
+                sql,
+                [
+                    nombre.trim(),
+                    correo.trim(),
+                    telefono.trim(),
+                    titulo.trim(),
+                    area_academica.trim(),
+                    dedicacion.trim(),
+                    anios,
+                    id
+                ],
+                (err) => {
+                        if (err){
+                            return res.status(500).json({error: 'Error al actualizar el docente'});
+                        }
+                        return res.json({message: 'Docente Actualizado correctamente'});
+                });
+        });
 
 });
 
