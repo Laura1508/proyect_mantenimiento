@@ -2,6 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 
+const dbQuery = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.query(sql, params, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+};
+
 const app = express();
 
 app.use(cors());

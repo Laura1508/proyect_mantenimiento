@@ -17,6 +17,9 @@ function App() {
   // ESTADOS GENERALES
   // =========================
   const [registros, setRegistros] = useState([]);
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroCorreo, setFiltroCorreo] = useState("");
+  const [filtroArea, setFiltroArea] = useState("");
   const [editIndex, setEditIndex] = useState(null);
 
   // =========================
@@ -24,24 +27,39 @@ function App() {
   // =========================
   useEffect(() => {
     cargarDocentes();
-  }, []);
+  }, [filtroNombre, filtroCorreo, filtroArea]);
 
   const cargarDocentes = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:3001/docentes"
-      );
+  try {
 
-      const data = await response.json();
+    const params = new URLSearchParams();
 
-      setRegistros(data);
-
-    } catch (error) {
-      console.error(error);
-
-      alert("Error al cargar los docentes");
+    if (filtroNombre) {
+      params.append("nombre", filtroNombre);
     }
-  };
+
+    if (filtroCorreo) {
+      params.append("correo", filtroCorreo);
+    }
+
+    if (filtroArea) {
+      params.append("area_academica", filtroArea);
+    }
+
+    const response = await fetch(
+      `http://localhost:3001/docentes?${params.toString()}`
+    );
+
+    const data = await response.json();
+
+    setRegistros(data.docentes);
+
+  } catch (error) {
+    console.error(error);
+
+    alert("Error al cargar los docentes");
+  }
+};
 
   // =========================
   // LIMPIAR FORMULARIO
@@ -188,7 +206,7 @@ function App() {
 
       if (response.ok) {
       
-        setRegistros([registros.filter((_, i) => i !== idx)]);
+        setRegistros(registros.filter((_, i) => i !== idx));
         if(editIndex === idx){
           setEditIndex(null);
           limpiarFormulario()
@@ -333,6 +351,35 @@ function App() {
       </button>
 
     </form>
+
+    {/* FILTROS */}
+    <div className="filtros">
+
+      <input
+        className="input"
+        type="text"
+        placeholder="Buscar por nombre"
+        value={filtroNombre}
+        onChange={(e) => setFiltroNombre(e.target.value)}
+      />
+
+      <input
+        className="input"
+        type="text"
+        placeholder="Buscar por correo"
+        value={filtroCorreo}
+        onChange={(e) => setFiltroCorreo(e.target.value)}
+      />
+
+      <input
+        className="input"
+        type="text"
+        placeholder="Buscar por área académica"
+        value={filtroArea}
+        onChange={(e) => setFiltroArea(e.target.value)}
+      />
+
+    </div>
 
     {/* TABLA */}
     <div className="tabla-container">
