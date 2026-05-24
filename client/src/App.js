@@ -2,48 +2,92 @@ import React, { useEffect, useState } from "react";
 import "./App.css";
 
 function App() {
-  // =========================
-  // ESTADOS DEL FORMULARIO
-  // =========================
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [telefono, setTelefono] = useState("");
   const [titulo, setTitulo] = useState("");
   const [areaAcademica, setAreaAcademica] = useState("");
   const [dedicacion, setDedicacion] = useState("");
-  const [aniosExperiencia, setAniosExperiencia] = useState(0);
+  const [aniosExperiencia, setAniosExperiencia] = useState("");
 
-  // =========================
-  // ESTADOS GENERALES
-  // =========================
+  // HU-03: estados de validación
+  const [errores, setErrores] = useState({});
+  const [tocados, setTocados] = useState({});
+  const [intentoEnvio, setIntentoEnvio] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState("");
+
   const [registros, setRegistros] = useState([]);
   const [filtroNombre, setFiltroNombre] = useState("");
   const [filtroCorreo, setFiltroCorreo] = useState("");
   const [filtroArea, setFiltroArea] = useState("");
   const [editIndex, setEditIndex] = useState(null);
 
-  // =========================
-  // CARGAR DOCENTES
-  // =========================
+  // HU-03: lógica de validaciones
+  const validarCampos = (campos) => {
+    const errs = {};
+
+    if (!campos.nombre.trim())
+      errs.nombre = "El nombre completo es obligatorio.";
+
+    if (!campos.correo.trim())
+      errs.correo = "El correo institucional es obligatorio.";
+    else if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(campos.correo))
+      errs.correo = "Ingresa un correo válido (ej: nombre@universidad.edu.co).";
+
+    if (!campos.telefono.trim())
+      errs.telefono = "El teléfono es obligatorio.";
+    else if (!/^\d+$/.test(campos.telefono))
+      errs.telefono = "El teléfono solo debe contener números.";
+    else if (campos.telefono.length < 7 || campos.telefono.length > 15)
+      errs.telefono = "El teléfono debe tener entre 7 y 15 dígitos.";
+
+    if (!campos.titulo.trim())
+      errs.titulo = "El título académico es obligatorio.";
+
+    if (!campos.areaAcademica.trim())
+      errs.areaAcademica = "El área académica es obligatoria.";
+
+    if (!campos.dedicacion.trim())
+      errs.dedicacion = "La dedicación es obligatoria.";
+
+    if (campos.aniosExperiencia === "" || campos.aniosExperiencia === null)
+      errs.aniosExperiencia = "Los años de experiencia son obligatorios.";
+    else if (Number(campos.aniosExperiencia) < 0)
+      errs.aniosExperiencia = "Los años de experiencia no pueden ser negativos.";
+    else if (!Number.isInteger(Number(campos.aniosExperiencia)))
+      errs.aniosExperiencia = "Ingresa un número entero de años.";
+
+    return errs;
+  };
+
   useEffect(() => {
-    cargarDocentes();
-  }, [filtroNombre, filtroCorreo, filtroArea]);
+    const campos = { nombre, correo, telefono, titulo, areaAcademica, dedicacion, aniosExperiencia };
+    setErrores(validarCampos(campos));
+    setMensajeExito("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombre, correo, telefono, titulo, areaAcademica, dedicacion, aniosExperiencia]);
+
+  const marcarTocado = (campo) => setTocados((prev) => ({ ...prev, [campo]: true }));
+
+  const mostrarError = (campo) => (tocados[campo] || intentoEnvio) && errores[campo];
+
+  const claseCampo = (campo) => {
+    if (!tocados[campo] && !intentoEnvio) return "campo";
+    if (errores[campo]) return "campo campo--error";
+    return "campo campo--ok";
+  };
+
+  const hayErrores = Object.keys(errores).length > 0;
+
+  useEffect(() => { cargarDocentes(); }, []);
 
   const cargarDocentes = async () => {
-  try {
-
-    const params = new URLSearchParams();
-
-    if (filtroNombre) {
-      params.append("nombre", filtroNombre);
-    }
-
-    if (filtroCorreo) {
-      params.append("correo", filtroCorreo);
-    }
-
-    if (filtroArea) {
-      params.append("area_academica", filtroArea);
+    try {
+      const response = await fetch("http://localhost:3001/docentes");
+      const data = await response.json();
+      setRegistros(data);
+    } catch (error) {
+      console.error(error);
     }
 
     const response = await fetch(
@@ -61,395 +105,212 @@ function App() {
   }
 };
 
-  // =========================
-  // LIMPIAR FORMULARIO
-  // =========================
   const limpiarFormulario = () => {
-    setNombre("");
-    setCorreo("");
-    setTelefono("");
-    setTitulo("");
-    setAreaAcademica("");
-    setDedicacion("");
-    setAniosExperiencia(0);
+    setNombre(""); setCorreo(""); setTelefono(""); setTitulo("");
+    setAreaAcademica(""); setDedicacion(""); setAniosExperiencia("");
+    setTocados({}); setErrores({});
+    setIntentoEnvio(false); setMensajeExito("");
   };
 
-  // =========================
-  // REGISTRAR / ACTUALIZAR
-  // =========================
   const registrarDatos = async (e) => {
     e.preventDefault();
+    setIntentoEnvio(true);
+    setTocados({ nombre: true, correo: true, telefono: true, titulo: true, areaAcademica: true, dedicacion: true, aniosExperiencia: true });
+
+    const erroresActuales = validarCampos({ nombre, correo, telefono, titulo, areaAcademica, dedicacion, aniosExperiencia });
+    setErrores(erroresActuales);
+    if (Object.keys(erroresActuales).length > 0) return;
 
     const payload = {
-      nombre,
-      correo,
-      telefono,
-      titulo,
+      nombre, correo, telefono, titulo,
       area_academica: areaAcademica,
       dedicacion,
       anios_experiencia: aniosExperiencia,
     };
 
-    // =========================
-    // ACTUALIZAR DOCENTE
-    // =========================
     if (editIndex !== null) {
       try {
         const docente = registros[editIndex];
-
-        const response = await fetch(
-          `http://localhost:3001/docentes/${docente.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-
+        const response = await fetch(`http://localhost:3001/docentes/${docente.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
         if (response.ok) {
-          const nuevosRegistros = [...registros];
-
-          nuevosRegistros[editIndex] = {
-            ...docente,
-            nombre,
-            correo,
-            telefono,
-            titulo,
-            area_academica: areaAcademica,
-            dedicacion,
-            anios_experiencia: aniosExperiencia,
-          };
-
-          setRegistros(nuevosRegistros);
-
+          const nuevos = [...registros];
+          nuevos[editIndex] = { ...docente, nombre, correo, telefono, titulo, area_academica: areaAcademica, dedicacion, anios_experiencia: aniosExperiencia };
+          setRegistros(nuevos);
           setEditIndex(null);
-
-          alert("Docente actualizado correctamente");
-
-       } else {
-          const err = await response.json().catch(() => ({}));
-
-          console.error(err);
-
-          alert(err.error || "Error al actualizar el docente");
+          setMensajeExito("✅ Docente actualizado correctamente.");
+        } else {
+          alert("Error al actualizar el docente");
         }
-
       } catch (error) {
         console.error(error);
-
         alert("Error de conexión con el servidor");
       }
-
-    // =========================
-    // CREAR DOCENTE
-    // =========================
     } else {
       try {
-        const response = await fetch(
-          "http://localhost:3001/docentes",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-
+        const response = await fetch("http://localhost:3001/docentes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
         const data = await response.json();
-
         if (response.ok) {
           setRegistros([...registros, data]);
-
-          alert("Docente registrado correctamente");
-
+          setMensajeExito("✅ Docente registrado correctamente.");
         } else {
-          console.error(data);
-
-          const message = data?.error || 'Error al registrar docente';
-
-          alert(message);
+          alert("Error al registrar el docente");
         }
-
       } catch (error) {
         console.error(error);
-
         alert("Error de conexión al registrar");
       }
     }
-
     limpiarFormulario();
   };
 
-  // =========================
-  // ELIMINAR DOCENTE
-  // =========================
   const eliminarRegistro = async (idx) => {
-    const confirmar = window.confirm(
-    "¿Esta seguro de eliminar este registro?"
-  );
-
-  // SI CANCELA
-  if (!confirmar) {
-    return;
-  }
-
+    const confirmar = window.confirm("¿Seguro que desea eliminar este docente?");
+    if (!confirmar) return;
     const docente = registros[idx];
-
     try {
-      const response = await fetch(
-        `http://localhost:3001/docentes/${docente.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
+      const response = await fetch(`http://localhost:3001/docentes/${docente.id}`, { method: "DELETE" });
       if (response.ok) {
-      
         setRegistros(registros.filter((_, i) => i !== idx));
-        if(editIndex === idx){
-          setEditIndex(null);
-          limpiarFormulario()
-        }
+        if (editIndex === idx) { setEditIndex(null); limpiarFormulario(); }
         alert("Docente eliminado correctamente");
-
       } else {
         alert("Error al eliminar el docente");
       }
-
     } catch (error) {
       console.error(error);
-
       alert("Error de conexión al eliminar");
     }
   };
 
   const editarRegistro = (idx) => {
     const reg = registros[idx];
-    setNombre(reg.nombre);
-    setCorreo(reg.correo);
-    setTitulo(reg.titulo);
-    setAreaAcademica(reg.area_academica);
-    setDedicacion(reg.dedicacion);
+    setNombre(reg.nombre); setCorreo(reg.correo);
+    setTelefono(reg.telefono || ""); setTitulo(reg.titulo);
+    setAreaAcademica(reg.area_academica); setDedicacion(reg.dedicacion);
     setAniosExperiencia(reg.anios_experiencia);
-    setEditIndex(idx);
+    setEditIndex(idx); setTocados({}); setIntentoEnvio(false); setMensajeExito("");
+  };
 
-  }
-
-  //lo que se dibuja
   return (
-  <div className="container">
-
-    {/* TITULO */}
-    <div className="titulo">
-      <h1>Gestión de docentes universitarios</h1>
-
-      <p>
-        Registro de profesores: datos académicos y de contacto
-      </p>
-    </div>
-
-    {/* FORMULARIO */}
-    <form
-      className="formulario"
-      onSubmit={registrarDatos}
-    >
-
-      <div className="grid-formulario">
-
-        <div className="campo">
-          <label>Nombre completo:</label>
-
-          <input
-            className="input"
-            type="text"
-            placeholder="Ej. María Fernanda López"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Correo institucional:</label>
-
-          <input
-            className="input"
-            type="email"
-            placeholder="nombre@universidad.edu"
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Teléfono:</label>
-
-          <input
-            className="input"
-            type="text"
-            placeholder="Ej. +57 300 1234567"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Título académico máximo:</label>
-
-          <input
-            className="input"
-            type="text"
-            placeholder="Ej. Doctorado, Maestría"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="campo">
-          <label>Área o programa académico:</label>
-
-          <input
-            className="input"
-            type="text"
-            placeholder="Ej. Ingeniería de Software"
-            value={areaAcademica}
-            onChange={(e) => setAreaAcademica(e.target.value)}
-          />
-        </div>
-
-        <div className="campo">
-          <label>Dedicación:</label>
-
-          <input
-            className="input"
-            type="text"
-            placeholder="Tiempo completo, medio tiempo..."
-            value={dedicacion}
-            onChange={(e) => setDedicacion(e.target.value)}
-          />
-        </div>
-
-        <div className="campo">
-          <label>Años de experiencia docente:</label>
-
-          <input
-            className="input"
-            type="number"
-            value={aniosExperiencia}
-            onChange={(e) => setAniosExperiencia(e.target.value)}
-          />
-        </div>
-
+    <div className="container">
+      <div className="titulo">
+        <h1>Gestión de docentes universitarios</h1>
+        <p>Registro de profesores: datos académicos y de contacto</p>
       </div>
 
-      <button className="btn-registrar" type="submit">
-        {editIndex !== null ? "Actualizar" : "Registrar"}
-      </button>
+      {mensajeExito && <div className="alerta-exito" role="alert">{mensajeExito}</div>}
 
-    </form>
+      {intentoEnvio && hayErrores && (
+        <div className="alerta-error" role="alert">
+          ⚠️ Hay {Object.keys(errores).length} campo(s) con errores. Por favor corrígelos antes de continuar.
+        </div>
+      )}
 
-    {/* FILTROS */}
-    <div className="filtros">
+      <form className="formulario" onSubmit={registrarDatos} noValidate>
+        <div className="grid-formulario">
 
-      <input
-        className="input"
-        type="text"
-        placeholder="Buscar por nombre"
-        value={filtroNombre}
-        onChange={(e) => setFiltroNombre(e.target.value)}
-      />
+          <div className={claseCampo("nombre")}>
+            <label>Nombre completo: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("nombre") ? " input--error" : tocados["nombre"] && !errores["nombre"] ? " input--ok" : ""}`}
+              type="text" placeholder="Ej. María Fernanda López" value={nombre}
+              onChange={(e) => setNombre(e.target.value)} onBlur={() => marcarTocado("nombre")} />
+            {mostrarError("nombre") && <span className="mensaje-error">{errores.nombre}</span>}
+          </div>
 
-      <input
-        className="input"
-        type="text"
-        placeholder="Buscar por correo"
-        value={filtroCorreo}
-        onChange={(e) => setFiltroCorreo(e.target.value)}
-      />
+          <div className={claseCampo("correo")}>
+            <label>Correo institucional: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("correo") ? " input--error" : tocados["correo"] && !errores["correo"] ? " input--ok" : ""}`}
+              type="email" placeholder="nombre@universidad.edu.co" value={correo}
+              onChange={(e) => setCorreo(e.target.value)} onBlur={() => marcarTocado("correo")} />
+            {mostrarError("correo") && <span className="mensaje-error">{errores.correo}</span>}
+          </div>
 
-      <input
-        className="input"
-        type="text"
-        placeholder="Buscar por área académica"
-        value={filtroArea}
-        onChange={(e) => setFiltroArea(e.target.value)}
-      />
+          <div className={claseCampo("telefono")}>
+            <label>Teléfono: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("telefono") ? " input--error" : tocados["telefono"] && !errores["telefono"] ? " input--ok" : ""}`}
+              type="text" inputMode="numeric" placeholder="Ej. 3001234567" value={telefono} maxLength={15}
+              onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ""))} onBlur={() => marcarTocado("telefono")} />
+            <span className="campo-hint">Solo se permiten números.</span>
+            {mostrarError("telefono") && <span className="mensaje-error">{errores.telefono}</span>}
+          </div>
 
-    </div>
+          <div className={claseCampo("titulo")}>
+            <label>Título académico máximo: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("titulo") ? " input--error" : tocados["titulo"] && !errores["titulo"] ? " input--ok" : ""}`}
+              type="text" placeholder="Ej. Doctorado, Maestría" value={titulo}
+              onChange={(e) => setTitulo(e.target.value)} onBlur={() => marcarTocado("titulo")} />
+            {mostrarError("titulo") && <span className="mensaje-error">{errores.titulo}</span>}
+          </div>
 
-    {/* TABLA */}
-    <div className="tabla-container">
+          <div className={claseCampo("areaAcademica")}>
+            <label>Área o programa académico: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("areaAcademica") ? " input--error" : tocados["areaAcademica"] && !errores["areaAcademica"] ? " input--ok" : ""}`}
+              type="text" placeholder="Ej. Ingeniería de Software" value={areaAcademica}
+              onChange={(e) => setAreaAcademica(e.target.value)} onBlur={() => marcarTocado("areaAcademica")} />
+            {mostrarError("areaAcademica") && <span className="mensaje-error">{errores.areaAcademica}</span>}
+          </div>
 
-      <table className="tabla">
+          <div className={claseCampo("dedicacion")}>
+            <label>Dedicación: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("dedicacion") ? " input--error" : tocados["dedicacion"] && !errores["dedicacion"] ? " input--ok" : ""}`}
+              type="text" placeholder="Tiempo completo, medio tiempo..." value={dedicacion}
+              onChange={(e) => setDedicacion(e.target.value)} onBlur={() => marcarTocado("dedicacion")} />
+            {mostrarError("dedicacion") && <span className="mensaje-error">{errores.dedicacion}</span>}
+          </div>
 
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Teléfono</th>
-            <th>Título</th>
-            <th>Área académica</th>
-            <th>Dedicación</th>
-            <th>Años doc.</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+          <div className={claseCampo("aniosExperiencia")}>
+            <label>Años de experiencia docente: <span className="campo-requerido">*</span></label>
+            <input className={`input${mostrarError("aniosExperiencia") ? " input--error" : tocados["aniosExperiencia"] && !errores["aniosExperiencia"] ? " input--ok" : ""}`}
+              type="number" min="0" placeholder="Ej. 5" value={aniosExperiencia} style={{maxWidth:"160px"}}
+              onChange={(e) => setAniosExperiencia(e.target.value)} onBlur={() => marcarTocado("aniosExperiencia")} />
+            <span className="campo-hint">No puede ser un valor negativo.</span>
+            {mostrarError("aniosExperiencia") && <span className="mensaje-error">{errores.aniosExperiencia}</span>}
+          </div>
 
-        <tbody>
-          {registros.map((reg, idx) => (
-            <tr key={idx}>
+        </div>
 
-              <td>{reg.nombre}</td>
+        <p className="leyenda-requeridos"><span className="campo-requerido">*</span> Campos obligatorios</p>
 
-              <td>{reg.correo}</td>
+        <button className="btn-registrar" type="submit"
+          disabled={intentoEnvio && hayErrores}
+          title={intentoEnvio && hayErrores ? "Corrige los errores para poder guardar" : ""}>
+          {editIndex !== null ? "Actualizar" : "Registrar"}
+        </button>
+      </form>
 
-              <td>{reg.telefono}</td>
-
-              <td>{reg.titulo}</td>
-
-              <td>{reg.area_academica}</td>
-
-              <td>{reg.dedicacion}</td>
-
-              <td>{reg.anios_experiencia}</td>
-
-              <td>
-
-                <button
-                  className="btn-editar"
-                  onClick={() => editarRegistro(idx)}
-                >
-                  Editar
-                </button>
-
-                <button
-                  className="btn-eliminar"
-                  onClick={() => eliminarRegistro(idx)}
-                >
-                  Eliminar
-                </button>
-
-              </td>
-
+      <div className="tabla-container">
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Título</th>
+              <th>Área académica</th><th>Dedicación</th><th>Años doc.</th><th>Acciones</th>
             </tr>
-          ))}
-        </tbody>
-
-      </table>
-
+          </thead>
+          <tbody>
+            {registros.map((reg, idx) => (
+              <tr key={idx}>
+                <td>{reg.nombre}</td><td>{reg.correo}</td><td>{reg.telefono}</td>
+                <td>{reg.titulo}</td><td>{reg.area_academica}</td><td>{reg.dedicacion}</td>
+                <td>{reg.anios_experiencia}</td>
+                <td>
+                  <button className="btn-editar" onClick={() => editarRegistro(idx)}>Editar</button>
+                  <button className="btn-eliminar" onClick={() => eliminarRegistro(idx)}>Eliminar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-
-  </div>
-);
-
+  );
 }
 
 export default App;
-
-
